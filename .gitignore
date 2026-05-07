@@ -13,3 +13,6 @@ env/
 
 # OS Generated Files
 .DS_Store
+
+# My Temp Files
+commands.txt
