@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repo Vulnerability Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-mono min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="w-full max-w-2xl bg-gray-800 rounded-lg shadow-2xl p-8 border border-gray-700">
+        <h1 class="text-3xl font-bold text-green-400 mb-2">VulnScanner_</h1>
+        <p class="text-gray-400 mb-8">Enter a GitHub repository URL to initiate static and dynamic analysis.</p>
+
+        <div class="flex gap-4 mb-6">
+            <input type="text" id="urlInput" placeholder="https://github.com/user/repo" 
+                class="flex-1 bg-gray-900 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-green-400">
+            <button onclick="startAnalysis()" id="scanBtn"
+                class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded transition duration-200">
+                INITIATE SCAN
+            </button>
+        </div>
+
+        <div class="bg-black rounded p-4 h-64 overflow-y-auto border border-gray-700 shadow-inner" id="terminal">
+            <div class="text-gray-500">> System ready. Awaiting target...</div>
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const urlInput = document.getElementById('urlInput');
+        const scanBtn = document.getElementById('scanBtn');
+
+        function log(message, color = 'text-gray-300') {
+            const entry = document.createElement('div');
+            entry.className = `mt-1 ${color}`;
+            entry.innerText = `> ${message}`;
+            terminal.appendChild(entry);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function startAnalysis() {
+            const url = urlInput.value;
+            if (!url) return log('Error: No URL provided', 'text-red-400');
+
+            urlInput.disabled = true;
+            scanBtn.disabled = true;
+            terminal.innerHTML = '';
+            log(`Target acquired: ${url}`, 'text-blue-400');
+            log('Initiating backend task queue...');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ github_url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`Task ID generated: ${data.task_id}`);
+                    log('Cloning repository... please wait.');
+                    pollStatus(data.task_id); // Start checking the status
+                } else {
+                    log(`Error: ${data.detail}`, 'text-red-400');
+                    resetUI();
+                }
+            } catch (error) {
+                log(`Connection error: ${error}`, 'text-red-400');
+                resetUI();
+            }
+        }
+
+        async function pollStatus(taskId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${taskId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'SUCCESS') {
+                        log('Cloning Complete!', 'text-green-400');
+                        const Treeoutput = data.result.tree
+                        terminal.innerHTML += `<pre class='text-blue-300 mt-4 text-sm'>${Treeoutput}</pre>`;
+                        terminal.innerHTML += "<br><span class='text-green-400'>> Scan Complete! Engine disengaged.</span><br>";
+                        clearInterval(interval);
+                        resetUI();
+                    }
+                    else if (data.status === 'FAILURE') {
+                        clearInterval(interval);
+                        log('Task failed during execution.', 'text-red-400');
+                        resetUI();
+                    }
+                    else {
+                        // Still running
+                        log(`Status: ${data.status}...`, 'text-gray-500');
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                    log(`Polling error: ${error}`, 'text-red-400');
+                    resetUI();
+                }
+            }, 2000);
+        }
+
+        function resetUI() {
+            urlInput.disabled = false;
+            scanBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

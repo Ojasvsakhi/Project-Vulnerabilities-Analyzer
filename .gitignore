@@ -1,0 +1,15 @@
+# Python Caches and Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C++ Build Artifacts
+build/
+analyzer
+
+# Virtual Environments
+venv/
+env/
+
+# OS Generated Files
+.DS_Store
