@@ -1,7 +1,10 @@
 # Python Caches and Bytecode
-__pycache__/
+**/__pycache__
 *.py[cod]
 *$py.class
+
+# .env file
+.env
 
 # C++ Build Artifacts
 build/
@@ -16,3 +19,6 @@ env/
 
 # My Temp Files
 commands.txt
+
+# Redis database
+dump.rdb

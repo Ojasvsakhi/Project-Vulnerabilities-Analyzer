@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -29,7 +30,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "\n> Analyzing Structure for: " << target_dir.filename().string() << "\n";
+    std::vector<std::string> files_to_analyze;
+    
+    std::stringstream tree_builder;
+    tree_builder << "\n> Analyzing Structure for: " << target_dir.filename().string() << "\n";
 
     auto it = fs::recursive_directory_iterator(target_dir);
     for (; it != fs::recursive_directory_iterator(); ++it) {
@@ -40,14 +44,22 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+        if (it->is_regular_file()) {
+            files_to_analyze.push_back(it->path().string());
+        }
+
         int depth = it.depth();
         std::string indent(depth * 4, ' '); 
         
         if (it->is_directory()) {
-            std::cout << indent << "|-- [" << fileName << "]\n";
+            tree_builder << indent << "|-- [" << fileName << "]\n";
         } else {
-            std::cout << indent << "|-- " << fileName << "\n";
+            tree_builder << indent << "|-- " << fileName << "\n";
         }
     }
+    
+    std::cout << tree_builder.str();
+    std::cout << "\n> [SYSTEM MESSAGE] Successfully queued " 
+              << files_to_analyze.size() << " files for deep LLVM analysis.\n";
     return 0;
 }
